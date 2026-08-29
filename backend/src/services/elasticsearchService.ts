@@ -123,12 +123,19 @@ export class ElasticsearchService {
       return {
         data: hits.map(hit => ({
           id: hit._id,
-          ...hit._source,
+          userId: hit._source.userId,
+          recipient: hit._source.recipient,
+          sender: hit._source.sender,
+          subject: hit._source.subject,
+          status: hit._source.status,
+          scheduledAt: hit._source.scheduledAt,
+          sentAt: hit._source.sentAt,
+          createdAt: hit._source.createdAt,
         })),
-        total: result.hits.total?.value || 0,
+        total: typeof result.hits.total === 'number' ? result.hits.total : (result.hits.total?.value || 0),
         page,
         limit,
-        totalPages: Math.ceil((result.hits.total?.value || 0) / limit),
+        totalPages: Math.ceil((typeof result.hits.total === 'number' ? result.hits.total : (result.hits.total?.value || 0)) / limit),
       };
     } catch (error) {
       logger.error({ userId, query, error }, 'Elasticsearch search failed');

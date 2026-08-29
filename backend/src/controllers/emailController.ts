@@ -1,5 +1,4 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { Response, NextFunction, Request } from 'express';
 import { EmailRepository } from '../repositories/emailRepository';
 import { CampaignRepository } from '../repositories/campaignRepository';
 import { SenderRepository } from '../repositories/senderRepository';
@@ -8,13 +7,14 @@ import { scheduleCampaignSchema, paginationSchema, emailSearchSchema } from '../
 import { logger } from '../utils/logger';
 import { ScheduleCampaignDto } from '../types';
 import { elasticsearchService } from '../services/elasticsearchService';
+import '../types/express'; // Import type declarations
 
 const emailRepository = new EmailRepository();
 const campaignRepository = new CampaignRepository();
 const senderRepository = new SenderRepository();
 
 export const emailController = {
-  async scheduleCampaign(req: AuthRequest, res: Response) {
+  async scheduleCampaign(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -102,7 +102,7 @@ export const emailController = {
     }
   },
 
-  async getScheduledEmails(req: AuthRequest, res: Response) {
+  async getScheduledEmails(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -119,7 +119,7 @@ export const emailController = {
     }
   },
 
-  async getSentEmails(req: AuthRequest, res: Response) {
+  async getSentEmails(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -136,7 +136,7 @@ export const emailController = {
     }
   },
 
-  async getEmailById(req: AuthRequest, res: Response) {
+  async getEmailById(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -160,7 +160,7 @@ export const emailController = {
     }
   },
 
-  async searchEmails(req: AuthRequest, res: Response) {
+  async searchEmails(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });

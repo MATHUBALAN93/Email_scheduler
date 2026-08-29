@@ -33,11 +33,17 @@ passport.use(
             name,
             avatarUrl,
           });
-          logger.info({ userId: user.id }, 'New user created via Google OAuth');
+
+          logger.info(
+            { userId: user.id },
+            'New user created via Google OAuth'
+          );
         } else {
-          // Update user info if changed
           if (user.name !== name || user.avatarUrl !== avatarUrl) {
-            user = await userRepository.update(user.id, { name, avatarUrl });
+            user = await userRepository.update(user.id, {
+              name,
+              avatarUrl,
+            });
           }
         }
 

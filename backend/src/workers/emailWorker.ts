@@ -1,4 +1,5 @@
 import { Worker, Job } from 'bullmq';
+import { bullmqWorkerRedis } from '../utils/bullmqRedis';
 import { redis } from '../utils/redis';
 import { config } from '../config';
 import { logger } from '../utils/logger';
@@ -9,8 +10,6 @@ import { slackService } from '../services/slackService';
 import { EmailJobData } from '../types';
 import { addEmailJob } from '../queues/emailQueue';
 import { EmailStatus } from '@prisma/client';
-
-const emailRepository = new EmailRepository();
 
 const emailRepository = new EmailRepository();
 
@@ -96,7 +95,7 @@ async function processEmailJob(job: Job<EmailJobData>) {
       const lastSent = await redis.get(delayKey);
       
       if (lastSent) {
-        const elapsed = Date.now() - parseInt(lastSent);
+        const elapsed = Date.now() - parseInt(lastSent as string);
         const remainingDelay = config.worker.minEmailDelayMs - elapsed;
         
         if (remainingDelay > 0) {
@@ -155,7 +154,7 @@ const worker = new Worker<EmailJobData>(
   'email-queue',
   processEmailJob,
   {
-    connection: redis,
+    connection: bullmqWorkerRedis,
     concurrency: config.worker.concurrency,
   }
 );

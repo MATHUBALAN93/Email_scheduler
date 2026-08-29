@@ -1,11 +1,11 @@
 import { Queue } from 'bullmq';
-import { redis } from '../utils/redis';
+import { bullmqQueueRedis } from '../utils/bullmqRedis';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 import { EmailJobData } from '../types';
 
 export const emailQueue = new Queue<EmailJobData>('email-queue', {
-  connection: redis,
+  connection: bullmqQueueRedis,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -31,18 +31,6 @@ emailQueue.on('waiting', (job) => {
   logger.info({ jobId: job.id }, 'Email job waiting');
 });
 
-emailQueue.on('active', (job) => {
-  logger.info({ jobId: job.id }, 'Email job started processing');
-});
-
-emailQueue.on('completed', (job) => {
-  logger.info({ jobId: job.id }, 'Email job completed');
-});
-
-emailQueue.on('failed', (job, error) => {
-  logger.error({ jobId: job?.id, error }, 'Email job failed');
-});
-
 export async function addEmailJob(emailId: string, scheduledAt: Date) {
   const delay = scheduledAt.getTime() - Date.now();
   
@@ -51,7 +39,7 @@ export async function addEmailJob(emailId: string, scheduledAt: Date) {
   }
 
   await emailQueue.add(
-    'send-email',
+    'send-email' as const,
     { emailId },
     {
       jobId: emailId, // Use email ID as job ID for idempotency

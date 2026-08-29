@@ -1,18 +1,18 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { Response, NextFunction, Request } from 'express';
 import { UserRepository } from '../repositories/userRepository';
 import { logger } from '../utils/logger';
+import '../types/express'; // Import type declarations
 
 const userRepository = new UserRepository();
 
 export const authController = {
-  async getMe(req: AuthRequest, res: Response) {
+  async getMe(req: Request, res: Response, next: NextFunction) {
     try {
-      if (!req.session?.user) {
+      if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const user = await userRepository.findById(req.session.user.id);
+      const user = await userRepository.findById(req.user.id);
       if (!user) {
         req.session.destroy(() => {});
         return res.status(401).json({ error: 'User not found' });
@@ -30,8 +30,8 @@ export const authController = {
     }
   },
 
-  async logout(req: AuthRequest, res: Response) {
-    req.session.destroy((err) => {
+  async logout(req: Request, res: Response, next: NextFunction) {
+    req.session?.destroy((err) => {
       if (err) {
         logger.error({ error: err }, 'Error destroying session');
         return res.status(500).json({ error: 'Failed to logout' });

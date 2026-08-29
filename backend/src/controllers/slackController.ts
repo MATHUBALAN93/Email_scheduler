@@ -1,14 +1,14 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { Response, NextFunction, Request } from 'express';
 import { SlackRepository } from '../repositories/slackRepository';
 import { slackService } from '../services/slackService';
 import { logger } from '../utils/logger';
 import { config } from '../config';
+import '../types/express'; // Import type declarations
 
 const slackRepository = new SlackRepository();
 
 export const slackController = {
-  async connect(req: AuthRequest, res: Response) {
+  async connect(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -25,7 +25,7 @@ export const slackController = {
     }
   },
 
-  async callback(req: AuthRequest, res: Response) {
+  async callback(req: Request, res: Response, next: NextFunction) {
     try {
       const { code } = req.query;
       
@@ -67,7 +67,7 @@ export const slackController = {
     }
   },
 
-  async getStatus(req: AuthRequest, res: Response) {
+  async getStatus(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -90,7 +90,7 @@ export const slackController = {
     }
   },
 
-  async disconnect(req: AuthRequest, res: Response) {
+  async disconnect(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });

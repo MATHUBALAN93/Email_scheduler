@@ -1,8 +1,8 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { Response, NextFunction, Request } from 'express';
 import { SenderRepository } from '../repositories/senderRepository';
 import { logger } from '../utils/logger';
 import { z } from 'zod';
+import '../types/express';
 
 const senderRepository = new SenderRepository();
 
@@ -14,14 +14,23 @@ const createSenderSchema = z.object({
   smtpPassword: z.string().min(1, 'SMTP password is required'),
 });
 
+type CreateSenderData = {
+  email: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpPassword: string;
+};
+
 export const senderController = {
-  async getSenders(req: AuthRequest, res: Response) {
+  async getSenders(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const senders = await senderRepository.findByUserId(req.user.id);
+
       res.json(senders);
     } catch (error) {
       logger.error({ error }, 'Error fetching senders');
@@ -29,17 +38,23 @@ export const senderController = {
     }
   },
 
-  async createSender(req: AuthRequest, res: Response) {
+  async createSender(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const validatedData = createSenderSchema.parse(req.body);
+      const validatedData = createSenderSchema.parse(
+        req.body
+      ) as CreateSenderData;
 
       const sender = await senderRepository.create({
         userId: req.user.id,
-        ...validatedData,
+        email: validatedData.email,
+        smtpHost: validatedData.smtpHost,
+        smtpPort: validatedData.smtpPort,
+        smtpUser: validatedData.smtpUser,
+        smtpPassword: validatedData.smtpPassword,
       });
 
       logger.info({ senderId: sender.id }, 'Sender created');
@@ -47,33 +62,50 @@ export const senderController = {
       res.status(201).json(sender);
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
-        return res.status(400).json({ error: 'Validation error', details: error.message });
+        return res.status(400).json({
+          error: 'Validation error',
+          details: error.message,
+        });
       }
+
       logger.error({ error }, 'Error creating sender');
-      res.status(500).json({ error: 'Internal server error' });
+
+      res.status(500).json({
+        error: 'Internal server error',
+      });
     }
   },
 
-  async deleteSender(req: AuthRequest, res: Response) {
+  async deleteSender(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const sender = await senderRepository.findById(req.params.id);
-      
+
       if (!sender || sender.userId !== req.user.id) {
-        return res.status(404).json({ error: 'Sender not found or unauthorized' });
+        return res.status(404).json({
+          error: 'Sender not found or unauthorized',
+        });
       }
 
       await senderRepository.delete(req.params.id);
 
-      logger.info({ senderId: req.params.id }, 'Sender deleted');
+      logger.info(
+        { senderId: req.params.id },
+        'Sender deleted'
+      );
 
-      res.json({ message: 'Sender deleted successfully' });
+      res.json({
+        message: 'Sender deleted successfully',
+      });
     } catch (error) {
       logger.error({ error }, 'Error deleting sender');
-      res.status(500).json({ error: 'Internal server error' });
+
+      res.status(500).json({
+        error: 'Internal server error',
+      });
     }
   },
 };

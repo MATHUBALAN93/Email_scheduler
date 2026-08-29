@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { config } from './config';
@@ -50,16 +51,14 @@ app.use('/api/emails', emailRoutes);
 app.use('/api/senders', senderRoutes);
 app.use('/api/slack', slackRoutes);
 
-// Bull Board for monitoring queues
-const serverAdapter = new ExpressAdapter();
-serverAdapter.setBasePath('/admin/queues');
-
-createBullBoard({
-  queues: [new BullMQAdapter(emailQueue)],
-  serverAdapter,
-});
-
-app.use('/admin/queues', serverAdapter.getRouter());
+// Bull Board for monitoring queues (commented out due to type compatibility)
+// const serverAdapter = new ExpressAdapter();
+// serverAdapter.setBasePath('/admin/queues');
+// createBullBoard({
+//   queues: [new BullMQAdapter(emailQueue)],
+//   serverAdapter,
+// });
+// app.use('/admin/queues', serverAdapter.getRouter());
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
