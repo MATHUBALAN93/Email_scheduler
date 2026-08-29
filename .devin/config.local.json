@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Exec(Get-ChildItem)",
+      "Exec(mkdir)",
+      "Exec(docker)"
+    ]
+  }
+}
