@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { Clock, Send, Plus, Search, Filter, RefreshCw, ChevronDown, LogOut, User, MessageSquare } from 'lucide-react';
+import { Clock, Send, Plus, Search, Filter, RefreshCw, ChevronDown, LogOut, User, MessageSquare, Mail } from 'lucide-react';
 import { User as UserType } from '../types';
 import { useQuery } from '@tanstack/react-query';
 import { slackService } from '../services/slackService';
@@ -33,6 +33,7 @@ export default function MainLayout({ user, onLogout }: MainLayoutProps) {
   const navItems = [
     { path: '/scheduled', icon: Clock, label: 'Scheduled', count: 0 },
     { path: '/sent', icon: Send, label: 'Sent', count: 0 },
+    { path: '/senders', icon: Mail, label: 'Senders', count: 0 },
   ];
 
   const handleSlackConnect = async () => {

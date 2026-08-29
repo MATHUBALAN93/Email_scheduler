@@ -1,12 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import passport from 'passport';
-import cookieParser from 'cookie-parser';
-import session from 'express-session';
 import { config } from './config';
 import { logger } from './utils/logger';
-import { passport } from './config/passport';
 import { authRoutes } from './routes/auth';
 import { emailRoutes } from './routes/emails';
 import { senderRoutes } from './routes/senders';
@@ -26,19 +22,6 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(session({
-  secret: config.session.secret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  },
-}));
-app.use(passport.initialize());
-app.use(passport.session());
 
 // Initialize Elasticsearch index
 elasticsearchService.ensureIndex().catch(error => {

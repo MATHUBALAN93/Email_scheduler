@@ -1,29 +1,14 @@
 import { Router } from 'express';
-import passport from 'passport';
 import { authController } from '../controllers/authController';
 import { authMiddleware } from '../middleware/auth';
-import { config } from '../config';
 
 const router = Router();
 
-// Google OAuth
-router.get(
-  '/google',
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-  })
-);
+// Email/Password Registration
+router.post('/register', authController.register);
 
-// Google OAuth callback
-router.get(
-  '/google/callback',
-  passport.authenticate('google', {
-    failureRedirect: `${config.frontend.url}/login`,
-  }),
-  (req, res) => {
-    res.redirect(`${config.frontend.url}/dashboard`);
-  }
-);
+// Email/Password Login
+router.post('/login', authController.loginWithEmail);
 
 // Session
 router.get('/me', authMiddleware, authController.getMe);

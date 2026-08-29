@@ -58,8 +58,14 @@ export default function ComposePage() {
   };
 
   const handleSchedule = () => {
-    if (!selectedSender || recipients.length === 0 || !subject || !body || !scheduledTime) {
-      alert('Please fill in all required fields');
+    if (!selectedSender || recipients.length === 0 || !subject || !body) {
+      alert('Please fill in all required fields (sender, recipients, subject, and body)');
+      return;
+    }
+
+    if (!scheduledTime) {
+      alert('Please select a scheduled time');
+      setShowSchedulePanel(true);
       return;
     }
 
@@ -167,7 +173,13 @@ export default function ComposePage() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => setShowSchedulePanel(false)}
+                  onClick={() => {
+                    if (scheduledTime) {
+                      setShowSchedulePanel(false);
+                    } else {
+                      alert('Please select a date and time');
+                    }
+                  }}
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                 >
                   Done

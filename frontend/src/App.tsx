@@ -6,11 +6,13 @@ import { authService } from './services/authService';
 import { User } from './types';
 
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ScheduledPage from './pages/ScheduledPage';
 import SentPage from './pages/SentPage';
 import ComposePage from './pages/ComposePage';
 import EmailDetailPage from './pages/EmailDetailPage';
+import SendersPage from './pages/SendersPage';
 import MainLayout from './layouts/MainLayout';
 
 const queryClient = new QueryClient({
@@ -24,22 +26,30 @@ const queryClient = new QueryClient({
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // useEffect(() => {
-  //   checkAuth();
-  // }, []);
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   const checkAuth = async () => {
     try {
-      const userData = await authService.getMe();
-      setUser(userData);
+      if (authService.isAuthenticated()) {
+        const userData = await authService.getMe();
+        setUser(userData);
+      } else {
+        setUser(null);
+      }
     } catch (error) {
       console.error('Authentication check failed:', error);
       setUser(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogin = (userData: User) => {
+    setUser(userData);
   };
 
   const handleLogout = async () => {
@@ -61,65 +71,86 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        {!user ? (
-          <Routes>
-            <Route
-              path="/login"
-              element={<LoginPage onLogin={checkAuth} />}
-            />
-            <Route
-              path="*"
-              element={<Navigate to="/login" replace />}
-            />
-          </Routes>
-        ) : (
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <MainLayout
-                  user={user}
-                  onLogout={handleLogout}
-                />
-              }
-            >
+        <Routes>
+          {!user ? (
+            <>
               <Route
-                index
+                path="/login"
+                element={
+                  <LoginPage
+                    onLogin={handleLogin}
+                    onSwitchToRegister={() => window.location.href = '/register'}
+                  />
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <RegisterPage
+                    onRegister={handleLogin}
+                    onSwitchToLogin={() => window.location.href = '/login'}
+                  />
+                }
+              />
+              <Route
+                path="*"
+                element={<Navigate to="/login" replace />}
+              />
+            </>
+          ) : (
+            <>
+              <Route
+                path="/"
+                element={
+                  <MainLayout
+                    user={user}
+                    onLogout={handleLogout}
+                  />
+                }
+              >
+                <Route
+                  index
+                  element={<Navigate to="/dashboard" replace />}
+                />
+
+                <Route
+                  path="dashboard"
+                  element={<DashboardPage />}
+                />
+
+                <Route
+                  path="scheduled"
+                  element={<ScheduledPage />}
+                />
+
+                <Route
+                  path="sent"
+                  element={<SentPage />}
+                />
+
+                <Route
+                  path="senders"
+                  element={<SendersPage />}
+                />
+
+                <Route
+                  path="compose"
+                  element={<ComposePage />}
+                />
+
+                <Route
+                  path="emails/:id"
+                  element={<EmailDetailPage />}
+                />
+              </Route>
+
+              <Route
+                path="*"
                 element={<Navigate to="/dashboard" replace />}
               />
-
-              <Route
-                path="dashboard"
-                element={<DashboardPage />}
-              />
-
-              <Route
-                path="scheduled"
-                element={<ScheduledPage />}
-              />
-
-              <Route
-                path="sent"
-                element={<SentPage />}
-              />
-
-              <Route
-                path="compose"
-                element={<ComposePage />}
-              />
-
-              <Route
-                path="emails/:id"
-                element={<EmailDetailPage />}
-              />
-            </Route>
-
-            <Route
-              path="*"
-              element={<Navigate to="/dashboard" replace />}
-            />
-          </Routes>
-        )}
+            </>
+          )}
+        </Routes>
       </BrowserRouter>
     </QueryClientProvider>
   );

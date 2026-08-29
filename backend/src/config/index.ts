@@ -40,6 +40,11 @@ export const config = {
   session: {
     secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
   },
+
+  jwt: {
+    secret: process.env.JWT_SECRET || 'change-this-jwt-secret-in-production',
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  },
   
   worker: {
     concurrency: parseInt(process.env.WORKER_CONCURRENCY || '5', 10),
