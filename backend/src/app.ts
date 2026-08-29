@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { config } from './config';
 import { logger } from './utils/logger';
+import { passport } from './config/passport';
 import { authRoutes } from './routes/auth';
 import { emailRoutes } from './routes/emails';
 import { senderRoutes } from './routes/senders';
@@ -20,8 +21,9 @@ app.use(cors({
   origin: config.frontend.url,
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(passport.initialize());
 
 // Initialize Elasticsearch index
 elasticsearchService.ensureIndex().catch(error => {

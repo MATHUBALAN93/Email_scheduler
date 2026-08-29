@@ -7,7 +7,7 @@ declare module 'express-session' {
       id: string;
       email: string;
       name: string;
-      googleId: string;
+      googleId?: string;
     };
   }
 }
@@ -18,7 +18,7 @@ declare global {
       id: string;
       email: string;
       name: string;
-      googleId: string;
+      googleId?: string;
     }
 
     interface Request {

@@ -8,10 +8,11 @@ import '../types/express'; // Import type declarations
 const userRepository = new UserRepository();
 
 const generateToken = (userId: string, email: string, name: string) => {
+  const expiresIn = config.jwt.expiresIn;
   return jwt.sign(
     { id: userId, email, name },
     config.jwt.secret,
-    { expiresIn: config.jwt.expiresIn }
+    { expiresIn } as any
   );
 };
 

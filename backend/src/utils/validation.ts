@@ -8,17 +8,23 @@ export const scheduleCampaignSchema = z.object({
   hourlyLimit: z.number().int().min(1, 'Hourly limit must be at least 1'),
   senderId: z.string().uuid('Invalid sender ID'),
   recipients: z.array(z.string().email('Invalid email address')).min(1, 'At least one recipient is required'),
+  attachments: z.array(z.object({
+    name: z.string(),
+    size: z.number(),
+    type: z.string(),
+    content: z.string(),
+  })).optional(),
 });
 
 export const emailSearchSchema = z.object({
   q: z.string().min(1, 'Search query is required'),
-  page: z.number().int().min(1).optional().default(1),
-  limit: z.number().int().min(1).max(100).optional().default(10),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(10),
 });
 
 export const paginationSchema = z.object({
-  page: z.number().int().min(1).optional().default(1),
-  limit: z.number().int().min(1).max(100).optional().default(10),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(10),
 });
 
 export type ScheduleCampaignInput = z.infer<typeof scheduleCampaignSchema>;

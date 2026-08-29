@@ -20,8 +20,15 @@ export const emailController = {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
+      console.log('Received schedule request:', {
+        body: req.body,
+        user: req.user.id,
+      });
+
       // Validate request body
       const validatedData = scheduleCampaignSchema.parse(req.body);
+      
+      console.log('Validated data:', validatedData);
       
       // Verify sender belongs to user
       const sender = await senderRepository.findById(validatedData.senderId);
@@ -61,6 +68,7 @@ export const emailController = {
           subject: campaign.subject,
           body: campaign.body,
           scheduledAt,
+          attachments: validatedData.attachments || null,
         });
 
         // Update bullJobId to use the actual email ID
@@ -95,9 +103,11 @@ export const emailController = {
       });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
+        console.error('Validation error:', error);
         return res.status(400).json({ error: 'Validation error', details: error.message });
       }
       logger.error({ error }, 'Error scheduling campaign');
+      console.error('Scheduling error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   },

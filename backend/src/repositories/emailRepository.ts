@@ -115,11 +115,12 @@ export class EmailRepository {
     });
   }
 
-  async createWithoutBullJobId(data: Omit<CreateEmailDto, 'bullJobId'>) {
+  async createWithoutBullJobId(data: Omit<CreateEmailDto, 'bullJobId'> & { attachments?: any }) {
     return prisma.email.create({
       data: {
         ...data,
         bullJobId: '', // Temporary empty string
+        attachments: data.attachments || null,
       },
       include: {
         sender: true,

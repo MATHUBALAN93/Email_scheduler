@@ -63,6 +63,7 @@ model Email {
   recipient    String
   subject      String
   body         String
+  attachments  Json?
   scheduledAt  DateTime
   sentAt       DateTime?
   status       EmailStatus @default(SCHEDULED)

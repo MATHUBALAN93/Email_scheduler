@@ -7,6 +7,15 @@ import { ArrowLeft, Upload, Clock, Send, X, Paperclip } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
+interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  file: File;
+  content: string;
+}
+
 export default function ComposePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -21,6 +30,7 @@ export default function ComposePage() {
   const [hourlyLimit, setHourlyLimit] = useState(100);
   const [showSchedulePanel, setShowSchedulePanel] = useState(false);
   const [scheduledTime, setScheduledTime] = useState('');
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const { data: senders, isLoading: loadingSenders } = useQuery({
     queryKey: ['senders'],
@@ -29,22 +39,17 @@ export default function ComposePage() {
 
   const scheduleMutation = useMutation({
     mutationFn: emailService.scheduleCampaign,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-emails'] });
+      queryClient.invalidateQueries({ queryKey: ['sent-emails'] });
+      alert('Email scheduled successfully!');
+      // Redirect to scheduled page after successful scheduling
       navigate('/scheduled');
     },
+    onError: (error) => {
+      alert(`Failed to schedule email: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
   });
-
-  const handleAddRecipient = () => {
-    if (recipientInput && !recipients.includes(recipientInput)) {
-      setRecipients([...recipients, recipientInput]);
-      setRecipientInput('');
-    }
-  };
-
-  const handleRemoveRecipient = (email: string) => {
-    setRecipients(recipients.filter(r => r !== email));
-  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,6 +60,47 @@ export default function ComposePage() {
     const uniqueEmails = [...new Set(emails.filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))];
     
     setRecipients([...new Set([...recipients, ...uniqueEmails])]);
+  };
+
+  const handleAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+    const newAttachments: Attachment[] = [];
+    
+    for (const file of Array.from(files)) {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`File ${file.name} is too large. Maximum size is 5MB.`);
+        continue;
+      }
+      
+      const base64 = await fileToBase64(file);
+      newAttachments.push({
+        id: `${Date.now()}-${Math.random()}`,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        file,
+        content: base64,
+      });
+    }
+
+    setAttachments([...attachments, ...newAttachments]);
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+    });
   };
 
   const handleSchedule = () => {
@@ -69,6 +115,31 @@ export default function ComposePage() {
       return;
     }
 
+    // Check total attachment size
+    const totalAttachmentSize = attachments.reduce((sum, att) => sum + att.size, 0);
+    const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB total limit
+    
+    if (totalAttachmentSize > MAX_TOTAL_SIZE) {
+      alert(`Total attachment size exceeds 10MB limit. Current size: ${(totalAttachmentSize / 1024 / 1024).toFixed(2)}MB`);
+      return;
+    }
+
+    console.log('Scheduling email with data:', {
+      subject,
+      body,
+      startTime: scheduledTime,
+      delayMs,
+      hourlyLimit,
+      senderId: selectedSender,
+      recipients,
+      attachments: attachments.map(att => ({
+        name: att.name,
+        size: att.size,
+        type: att.type,
+        content: att.content.substring(0, 50) + '...', // Log only first 50 chars of content
+      })),
+    });
+
     scheduleMutation.mutate({
       subject,
       body,
@@ -77,7 +148,17 @@ export default function ComposePage() {
       hourlyLimit,
       senderId: selectedSender,
       recipients,
+      attachments: attachments.map(att => ({
+        name: att.name,
+        size: att.size,
+        type: att.type,
+        content: att.content,
+      })),
     });
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments(attachments.filter(att => att.id !== id));
   };
 
   const getQuickScheduleTime = (hours: number, minutes: number) => {
@@ -121,50 +202,93 @@ export default function ComposePage() {
             </button>
             <button
               onClick={handleSchedule}
-              disabled={scheduleMutation.isPending}
-              className="btn-primary flex items-center gap-2 disabled:opacity-50"
+              className="btn-primary flex items-center gap-2"
             >
-              {scheduleMutation.isPending ? 'Scheduling...' : 'Schedule'}
+              <Send className="w-5 h-5" />
+              Schedule
             </button>
           </div>
         </div>
 
         {/* Schedule Panel */}
         {showSchedulePanel && (
-          <div className="card p-4 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Send Later</h3>
+          <div className="card p-6 mb-6 border-2 border-primary-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Schedule Email</h2>
+            
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date & Time
+                  Schedule Date & Time
                 </label>
                 <input
                   type="datetime-local"
                   value={scheduledTime}
                   onChange={(e) => setScheduledTime(e.target.value)}
                   className="input-field"
+                  min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
                 />
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setScheduledTime(getQuickScheduleTime(24, 10))}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Tomorrow, 10:00 AM
-                </button>
-                <button
-                  onClick={() => setScheduledTime(getQuickScheduleTime(24, 11))}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Tomorrow, 11:00 AM
-                </button>
-                <button
-                  onClick={() => setScheduledTime(getQuickScheduleTime(24, 15))}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Tomorrow, 3:00 PM
-                </button>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Quick Schedule
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setScheduledTime(getQuickScheduleTime(1, 0))}
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    In 1 hour
+                  </button>
+                  <button
+                    onClick={() => setScheduledTime(getQuickScheduleTime(2, 0))}
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    In 2 hours
+                  </button>
+                  <button
+                    onClick={() => setScheduledTime(getQuickScheduleTime(24, 9))}
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Tomorrow, 9:00 AM
+                  </button>
+                  <button
+                    onClick={() => setScheduledTime(getQuickScheduleTime(24, 15))}
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Tomorrow, 3:00 PM
+                  </button>
+                </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Delay between emails (ms)
+                  </label>
+                  <input
+                    type="number"
+                    value={delayMs}
+                    onChange={(e) => setDelayMs(parseInt(e.target.value))}
+                    className="input-field"
+                    min="0"
+                    step="100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Hourly limit
+                  </label>
+                  <input
+                    type="number"
+                    value={hourlyLimit}
+                    onChange={(e) => setHourlyLimit(parseInt(e.target.value))}
+                    className="input-field"
+                    min="1"
+                  />
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowSchedulePanel(false)}
@@ -210,11 +334,6 @@ export default function ComposePage() {
                   </option>
                 ))}
               </select>
-              {!senders || senders.length === 0 && (
-                <p className="text-sm text-gray-500 mt-1">
-                  No senders configured. Please add a sender first.
-                </p>
-              )}
             </div>
 
             {/* To */}
@@ -222,54 +341,54 @@ export default function ComposePage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 To
               </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="email"
-                  value={recipientInput}
-                  onChange={(e) => setRecipientInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddRecipient())}
-                  placeholder="Add recipient"
-                  className="input-field flex-1"
-                />
-                <button
-                  onClick={handleAddRecipient}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
-                  Add
-                </button>
-                <label className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer flex items-center gap-2">
-                  <Upload className="w-4 h-4" />
-                  Upload
+              <div className="space-y-2">
+                <div className="flex gap-2">
                   <input
-                    type="file"
-                    accept=".csv,.txt"
-                    onChange={handleFileUpload}
-                    className="hidden"
+                    type="email"
+                    value={recipientInput}
+                    onChange={(e) => setRecipientInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (recipientInput && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientInput)) {
+                          setRecipients([...recipients, recipientInput]);
+                          setRecipientInput('');
+                        }
+                      }
+                    }}
+                    placeholder="Enter email and press Enter"
+                    className="input-field flex-1"
                   />
-                </label>
-              </div>
-              
-              {recipients.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {recipients.map((email) => (
-                    <span
-                      key={email}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm"
-                    >
-                      {email}
-                      <button
-                        onClick={() => handleRemoveRecipient(email)}
-                        className="hover:bg-primary-100 rounded-full p-0.5"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                  <span className="text-sm text-gray-500">
-                    {recipients.length} recipient{recipients.length !== 1 ? 's' : ''}
-                  </span>
+                  <label className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    Upload CSV
+                    <input
+                      type="file"
+                      accept=".csv,.txt"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
-              )}
+                {recipients.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {recipients.map((email, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-full text-sm"
+                      >
+                        {email}
+                        <button
+                          onClick={() => setRecipients(recipients.filter((_, i) => i !== index))}
+                          className="hover:text-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Subject */}
@@ -337,6 +456,52 @@ export default function ComposePage() {
                   className="w-full p-4 min-h-[300px] focus:outline-none resize-none"
                   required
                 />
+              </div>
+            </div>
+
+            {/* Attachments */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Attachments
+              </label>
+              <div className="space-y-2">
+                <label className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer flex items-center gap-2 inline-block">
+                  <Paperclip className="w-4 h-4" />
+                  Add Attachment
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleAttachment}
+                    className="hidden"
+                  />
+                </label>
+                
+                {attachments.length > 0 && (
+                  <div className="space-y-2">
+                    {attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Paperclip className="w-4 h-4 text-gray-600" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{attachment.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {(attachment.size / 1024).toFixed(2)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveAttachment(attachment.id)}
+                          className="p-1 hover:bg-red-100 rounded text-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

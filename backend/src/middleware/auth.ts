@@ -20,6 +20,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
       id: decoded.id,
       email: decoded.email,
       name: decoded.name,
+      googleId: undefined,
     };
     
     next();

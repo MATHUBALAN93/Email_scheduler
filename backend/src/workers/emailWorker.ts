@@ -114,7 +114,8 @@ async function processEmailJob(job: Job<EmailJobData>) {
       email.recipient,
       email.subject,
       email.body,
-      email.sender.email
+      email.senderId,
+      email.attachments as any
     );
 
     // Update status to SENT

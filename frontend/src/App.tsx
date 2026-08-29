@@ -30,6 +30,16 @@ function App() {
 
   useEffect(() => {
     checkAuth();
+    
+    // Check for token in URL (Google OAuth callback)
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+      authService.setToken(token);
+      // Remove token from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      checkAuth();
+    }
   }, []);
 
   const checkAuth = async () => {

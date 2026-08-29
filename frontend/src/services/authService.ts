@@ -16,6 +16,10 @@ export const authService = {
     localStorage.removeItem(TOKEN_KEY);
   },
 
+  async loginWithGoogle() {
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/auth/google`;
+  },
+
   async loginWithEmail(email: string, password: string): Promise<{ token: string; user: User }> {
     const response = await api.post('/auth/login', { email, password });
     const { token, user } = response.data;

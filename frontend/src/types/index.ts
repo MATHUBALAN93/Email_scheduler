@@ -72,4 +72,10 @@ export interface ScheduleCampaignRequest {
   hourlyLimit: number;
   senderId: string;
   recipients: string[];
+  attachments?: Array<{
+    name: string;
+    size: number;
+    type: string;
+    content: string;
+  }>;
 }

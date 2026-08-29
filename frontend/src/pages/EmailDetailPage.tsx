@@ -86,7 +86,7 @@ export default function EmailDetailPage() {
                   ? 'bg-red-100 text-red-700'
                   : 'bg-orange-100 text-orange-700'
               }`}>
-                {email.status}
+                {email.status === 'SCHEDULED' ? 'Pending' : email.status === 'SENT' ? 'Completed' : email.status}
               </span>
             </div>
           </div>
@@ -108,7 +108,7 @@ export default function EmailDetailPage() {
               </div>
               <div>
                 <span className="text-gray-500">Status:</span>
-                <span className="ml-2 text-gray-900">{email.status}</span>
+                <span className="ml-2 text-gray-900">{email.status === 'SCHEDULED' ? 'Pending' : email.status === 'SENT' ? 'Completed' : email.status}</span>
               </div>
               <div>
                 <span className="text-gray-500">Scheduled:</span>
